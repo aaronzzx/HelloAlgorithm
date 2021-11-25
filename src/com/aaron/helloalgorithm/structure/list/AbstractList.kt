@@ -17,4 +17,12 @@ abstract class AbstractList<E> : List<E> {
     override fun contains(item: E): Boolean {
         return indexOf(item) >= 0
     }
+
+    override fun getFirst(): E {
+        return get(0)
+    }
+
+    override fun getLast(): E {
+        return get(size - 1)
+    }
 }

@@ -6,7 +6,7 @@ import com.aaron.helloalgorithm.downUntil
  * @author aaronzzxup@gmail.com
  * @since 2021/11/25
  */
-class LinkedList<E> : AbstractList<E>() {
+class LinkedList<E> : AbstractList<E>(), Stack<E>, Deque<E> {
 
     private var first: Node<E>? = null
 
@@ -161,6 +161,134 @@ class LinkedList<E> : AbstractList<E>() {
         first = null
         last = null
         _size = 0
+    }
+
+    private fun linkFirst(item: E) {
+        add(0, item)
+    }
+
+    private fun unlinkFirst(): E {
+        return removeAt(0)
+    }
+
+    private fun unlinkLast(): E {
+        return removeAt(size - 1)
+    }
+
+    override fun push(item: E): Boolean {
+        linkLast(item)
+        return true
+    }
+
+    override fun pop(): E {
+        return unlinkLast()
+    }
+
+    override fun top(): E {
+        return getLast()
+    }
+
+    override fun popOrNull(): E? {
+        return try {
+            unlinkLast()
+        } catch (e: IndexOutOfBoundsException) {
+            null
+        }
+    }
+
+    override fun topOrNull(): E? {
+        return try {
+            getLast()
+        } catch (e: IndexOutOfBoundsException) {
+            null
+        }
+    }
+
+    override fun offerFirst(item: E): Boolean {
+        linkFirst(item)
+        return true
+    }
+
+    override fun offerLast(item: E): Boolean {
+        linkLast(item)
+        return true
+    }
+
+    override fun pollFirst(): E {
+        return unlinkFirst()
+    }
+
+    override fun pollLast(): E {
+        return unlinkLast()
+    }
+
+    override fun peekFirst(): E {
+        return getFirst()
+    }
+
+    override fun peekLast(): E {
+        return getLast()
+    }
+
+    override fun pollFirstOrNull(): E? {
+        return try {
+            unlinkFirst()
+        } catch (e: IndexOutOfBoundsException) {
+            null
+        }
+    }
+
+    override fun pollLastOrNull(): E? {
+        return try {
+            unlinkLast()
+        } catch (e: IndexOutOfBoundsException) {
+            null
+        }
+    }
+
+    override fun peekFirstOrNull(): E? {
+        return try {
+            getFirst()
+        } catch (e: IndexOutOfBoundsException) {
+            null
+        }
+    }
+
+    override fun peekLastOrNull(): E? {
+        return try {
+            getLast()
+        } catch (e: IndexOutOfBoundsException) {
+            null
+        }
+    }
+
+    override fun offer(item: E): Boolean {
+        linkLast(item)
+        return true
+    }
+
+    override fun poll(): E {
+        return unlinkFirst()
+    }
+
+    override fun peek(): E {
+        return getFirst()
+    }
+
+    override fun pollOrNull(): E? {
+        return try {
+            unlinkFirst()
+        } catch (e: IndexOutOfBoundsException) {
+            null
+        }
+    }
+
+    override fun peekOrNull(): E? {
+        return try {
+            getFirst()
+        } catch (e: IndexOutOfBoundsException) {
+            null
+        }
     }
 
     override fun toString(): String {

@@ -20,6 +20,10 @@ interface List<E> {
 
     fun get(index: Int): E
 
+    fun getFirst(): E
+
+    fun getLast(): E
+
     fun isEmpty(): Boolean
 
     fun indexOf(item: E): Int
