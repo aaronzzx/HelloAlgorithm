@@ -8,5 +8,7 @@ sealed class LeetCode {
 
     object 数组 : LeetCode()
 
+    object 链表 : LeetCode()
+
     object 二叉树 : LeetCode()
 }

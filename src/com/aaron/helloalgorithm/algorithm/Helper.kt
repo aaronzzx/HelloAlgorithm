@@ -1,6 +1,10 @@
-package com.aaron.helloalgorithm.algorithm.二叉树
+package com.aaron.helloalgorithm.algorithm
 
 import com.aaron.helloalgorithm.structure.tree.printer.BinaryTreeInfo
+
+class ListNode(var `val`: Int) {
+    var next: ListNode? = null
+}
 
 class TreeNode(var `val`: Int) : BinaryTreeInfo {
 
