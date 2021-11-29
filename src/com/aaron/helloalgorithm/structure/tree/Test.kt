@@ -10,9 +10,13 @@ import kotlin.concurrent.thread
  */
 fun testTree() {
     val tree = BST<Int>()
-//    NUMS.forEach {
+//    NUMS2.forEach {
 //        tree.add(it)
 //    }
+//    tree.println(BinaryTrees.PrintStyle.LEVEL_ORDER)
+//    println("full: ${tree.isFull()}")
+//    println("complete: ${tree.isComplete()}")
+//    println("perfect: ${tree.isPerfect()}")
 //    repeat((6..10).random()) {
 //        Thread.sleep(10)
 //        tree.add((1..50).random())
@@ -25,16 +29,16 @@ fun testTree() {
 //    println("isPerfect: ${tree.isPerfect()}")
 //    println("isComplete: ${tree.isComplete()}")
 
-//    printFullTree(tree)
-//    printPerfectTree(tree)
-//    printCompleteTree(tree)
+    printFullTree(tree)
+    printPerfectTree(tree)
+    printCompleteTree(tree)
 
-    NUMS.forEach {
-        tree.add(it)
-    }
-    tree.println(BinaryTrees.PrintStyle.LEVEL_ORDER)
-    tree.remove(9)
-    tree.println(BinaryTrees.PrintStyle.LEVEL_ORDER)
+//    NUMS.forEach {
+//        tree.add(it)
+//    }
+//    tree.println(BinaryTrees.PrintStyle.LEVEL_ORDER)
+//    tree.remove(9)
+//    tree.println(BinaryTrees.PrintStyle.LEVEL_ORDER)
 }
 
 private fun randomAddTreeNode(tree: BST<Int>, maxNodeCount: Int = 7) {

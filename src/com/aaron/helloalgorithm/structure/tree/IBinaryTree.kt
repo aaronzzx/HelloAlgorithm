@@ -6,10 +6,6 @@ package com.aaron.helloalgorithm.structure.tree
  */
 interface IBinaryTree<E> {
 
-    fun add(element: E)
-
-    fun remove(element: E)
-
     fun contains(element: E): Boolean
 
     fun isEmpty(): Boolean

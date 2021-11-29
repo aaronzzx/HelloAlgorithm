@@ -6,17 +6,13 @@ import kotlin.math.max
 
 /**
  * @author aaronzzxup@gmail.com
- * @since 2021/11/23
+ * @since 2021/11/29
  */
-class BST<E> : IBinaryTree<E>, IBinaryTreeTraversal<E>, BinaryTreeInfo {
+class BST<E> : IBinarySearchTree<E>, IBinaryTreeTraversal<E>, BinaryTreeInfo {
 
     private var root: TreeNode<E>? = null
 
     private var size = 0
-
-    private var height = 0
-
-    private var isHeightDirty = false
 
     private var comparator: Comparator<E>? = null
 
@@ -27,49 +23,39 @@ class BST<E> : IBinaryTree<E>, IBinaryTreeTraversal<E>, BinaryTreeInfo {
     }
 
     override fun add(element: E) {
-        if (root == null) {
+        var node: TreeNode<E>? = root
+        // 根节点为空，创建根节点
+        if (node == null) {
             root = TreeNode(element, null)
             size++
             return
         }
-        val root = root ?: return
-        var node: TreeNode<E>? = root
-        var parent = root
+        var parent = node
         var compare = 0
+        // 遍历找到待插入节点的父节点，如果元素相等则覆盖即可
         while (node != null) {
             parent = node
-            compare = compare(element, node.element)
-            when (compare) {
-                -1 -> {
-                    node = node.left
-                }
-                1 -> {
-                    node = node.right
-                }
+            compare = compare(element, node.item as E)
+            when {
+                // 往左子树查找
+                compare < 0 -> node = node.left
+                // 往右子树查找
+                compare > 0 -> node = node.right
                 else -> {
-                    node.element = element
+                    node.item = element
                     return
                 }
             }
         }
         val newNode = TreeNode(element, parent)
-        when (compare) {
-            -1 -> {
-                parent.left = newNode
-            }
-            else -> {
-                parent.right = newNode
-            }
+        if (compare < 0) {
+            // 待插入节点应插入到左节点
+            parent?.left = newNode
+        } else {
+            // 待插入节点应插入到右节点
+            parent?.right = newNode
         }
         size++
-        isHeightDirty = true
-    }
-
-    private fun compare(e1: E, e2: E): Int {
-        if (comparator != null) {
-            return comparator!!.compare(e1, e2)
-        }
-        return (e1 as Comparable<E>).compareTo(e2)
     }
 
     override fun remove(element: E) {
@@ -78,29 +64,40 @@ class BST<E> : IBinaryTree<E>, IBinaryTreeTraversal<E>, BinaryTreeInfo {
 
     private fun remove(node: TreeNode<E>?) {
         var _node = node ?: return
+        // 度为 2
         if (_node.hasTwoChildren) {
+            // 找到后继，用前驱也行
             val succ = successor(_node)!!
-            _node.element = succ.element
+            // 直接将后继/前驱的值覆盖上去
+            _node.item = succ.item
+            // 然后将后继/前驱的引用赋值 _node ，往下走统一处理
             _node = succ
         }
-        val replacement = when (_node.left) {
-            null -> _node.right
-            else -> _node.left
+        // 以下处理度为 0 或 1 的情况
+        val replacement = when (_node.hasLeftOnly) {
+            true -> _node.left
+            else -> _node.right
         }
         if (replacement != null) {
+            // 度为 1 ，首先将待删除的节点的父节点赋值给替代节点
             replacement.parent = _node.parent
-            if (_node.parent == null) {
-                root = replacement
-            } else {
+            if (_node.hasParent) {
+                // 如果待删除节点有父节点，需要判断待删除节点是
+                // 父节点的哪个子节点，然后将替代节点赋值给父节点的子节点
                 if (_node == _node.parent?.left) {
                     _node.parent?.left = replacement
                 } else {
                     _node.parent?.right = replacement
                 }
+            } else {
+                // 待删除节点没有父节点，那它就是根节点，直接将替代节点赋值给根节点
+                root = replacement
             }
-        } else if (_node.parent == null) {
+        } else if (!_node.hasParent) {
+            // 删除的是根节点
             root = null
         } else {
+            // 度为 0 ，直接将待删除节点的相应子节点置空
             if (_node == _node.parent?.left) {
                 _node.parent?.left = null
             } else {
@@ -108,39 +105,52 @@ class BST<E> : IBinaryTree<E>, IBinaryTreeTraversal<E>, BinaryTreeInfo {
             }
         }
         size--
-        isHeightDirty = true
     }
 
-    private fun predecessor(node: TreeNode<E>?): TreeNode<E>? {
-        node ?: return null
-        var node1 = node
-        var pred = node1.left
-        if (pred != null) {
-            while (pred?.right != null) {
-                pred = pred.right
-            }
-            return pred
-        }
-        while (node1?.parent != null && node1 == node1.parent?.left) {
-            node1 = node1.parent
-        }
-        return node1?.parent
+    override fun predecessorOf(element: E): E? {
+        val node = node(element) ?: return null
+        return predecessor(node)?.item
     }
 
-    private fun successor(node: TreeNode<E>?): TreeNode<E>? {
-        node ?: return null
-        var node1 = node
-        var pred = node1.right
-        if (pred != null) {
-            while (pred?.left != null) {
-                pred = pred.left
+    override fun successorOf(element: E): E? {
+        val node = node(element) ?: return null
+        return successor(node)?.item
+    }
+
+    private fun predecessor(node: TreeNode<E>): TreeNode<E>? {
+        var _node: TreeNode<E>? = node
+        // 有左子树，则从左子树开始一直向右查找，最终的节点就是前驱
+        // 如果左子树没有右节点，则左子树就是前驱
+        if (_node?.hasLeft == true) {
+            _node = _node.left
+            while (_node?.hasRight == true) {
+                _node = _node.right
             }
-            return pred
+            return _node
         }
-        while (node1?.parent != null && node1 == node1.parent?.right) {
-            node1 = node1.parent
+        // 来到这里表示 node 节点没有左子树，因此需要向上查找
+        // 前提是待查找前驱节点有父节点并且待查找前驱节点是父节点的左节点
+        while (_node?.hasParent == true && _node == _node.parent?.left) {
+            _node = _node.parent
         }
-        return node1?.parent
+        return _node?.parent
+    }
+
+    private fun successor(node: TreeNode<E>): TreeNode<E>? {
+        // 情况与查找前驱相反
+        var _node: TreeNode<E>? = node
+        if (_node?.hasRight == true) {
+            _node = _node.right
+            while (_node?.hasLeft == true) {
+                _node = _node.left
+            }
+            return _node
+        }
+        // 来到这里表示 node 节点没有右子树，因此需要向上查找
+        while (_node?.hasParent == true && _node == _node.parent?.right) {
+            _node = _node.parent
+        }
+        return _node?.parent
     }
 
     override fun contains(element: E): Boolean {
@@ -148,19 +158,28 @@ class BST<E> : IBinaryTree<E>, IBinaryTreeTraversal<E>, BinaryTreeInfo {
     }
 
     private fun node(element: E): TreeNode<E>? {
-        var node = root
+        var node: TreeNode<E>? = root
         while (node != null) {
-            val cmp = compare(element, node.element)
-            if (cmp == 0) {
+            if (node.item == element) {
                 return node
             }
-            if (cmp < 0) {
+            if (compare(element, node.item as E) < 0) {
+                // 在左子树
                 node = node.left
             } else {
+                // 在右子树
                 node = node.right
             }
         }
         return null
+    }
+
+    private fun compare(e1: E, e2: E): Int {
+        val com = comparator
+        if (com != null) {
+            return com.compare(e1, e2)
+        }
+        return (e1 as Comparable<E>).compareTo(e2)
     }
 
     override fun isEmpty(): Boolean {
@@ -177,25 +196,22 @@ class BST<E> : IBinaryTree<E>, IBinaryTreeTraversal<E>, BinaryTreeInfo {
     }
 
     override fun height(): Int {
-        if (isHeightDirty) {
-            isHeightDirty = false
-            height = heightByLevelTraversal(root)
-        }
-        return height
+//        return getHeightByRecursive(root)
+        return getHeightByTraversal(root)
     }
 
-    private fun heightByRecursive(node: TreeNode<E>?): Int {
+    private fun getHeightByRecursive(node: TreeNode<E>?): Int {
         node ?: return 0
-        return 1 + max(heightByRecursive(node.left), heightByRecursive(node.right))
+        return 1 + max(getHeightByRecursive(node.left), getHeightByRecursive(node.right))
     }
 
-    private fun heightByLevelTraversal(node: TreeNode<E>?): Int {
+    private fun getHeightByTraversal(node: TreeNode<E>?): Int {
         node ?: return 0
-        var height = 0
-        var levelSize = 1
-        val queue: Queue<TreeNode<E>> = LinkedList<TreeNode<E>>().also {
+        val queue = LinkedList<TreeNode<E>>().also {
             it.offer(node)
         }
+        var height = 0
+        var levelSize = 1
         while (queue.isNotEmpty()) {
             val poll = queue.poll()
             levelSize--
@@ -214,16 +230,13 @@ class BST<E> : IBinaryTree<E>, IBinaryTreeTraversal<E>, BinaryTreeInfo {
     }
 
     override fun isFull(): Boolean {
-        val root = root ?: return false
-        val queue: Queue<TreeNode<E>> = LinkedList<TreeNode<E>>().also {
-            it.offer(root)
+        val node = root ?: return false
+        val queue = LinkedList<TreeNode<E>>().also {
+            it.offer(node)
         }
         while (queue.isNotEmpty()) {
             val poll = queue.poll()
-            if (poll.hasLeftOnly) {
-                return false
-            }
-            if (poll.hasRightOnly) {
+            if (poll.hasLeftOnly || poll.hasRightOnly) {
                 return false
             }
             if (poll.hasLeft) {
@@ -237,21 +250,20 @@ class BST<E> : IBinaryTree<E>, IBinaryTreeTraversal<E>, BinaryTreeInfo {
     }
 
     override fun isPerfect(): Boolean {
-        root ?: return false
         val height = height()
         if (height == 0) return false
-        return size == (2 shl height - 1) - 1
+        return (2 shl (height - 1)) - 1 == size
     }
 
     override fun isComplete(): Boolean {
-        val root = root ?: return false
-        val queue: Queue<TreeNode<E>> = LinkedList<TreeNode<E>>().also {
-            it.offer(root)
+        val node = root ?: return false
+        val queue = LinkedList<TreeNode<E>>().also {
+            it.offer(node)
         }
-        var isLeafFound = false
+        var foundLeaf = false
         while (queue.isNotEmpty()) {
             val poll = queue.poll()
-            if (isLeafFound && !poll.isLeaf) {
+            if (foundLeaf && !poll.isLeaf) {
                 return false
             }
             if (poll.hasLeft) {
@@ -262,34 +274,33 @@ class BST<E> : IBinaryTree<E>, IBinaryTreeTraversal<E>, BinaryTreeInfo {
             if (poll.hasRight) {
                 queue.offer(poll.right)
             } else {
-                isLeafFound = true
+                foundLeaf = true
             }
         }
         return true
     }
 
     override fun preorderTraversal(visitor: IVisitor<E>) {
-        var node = root ?: return
-        val stack: Deque<TreeNode<E>> = LinkedList<TreeNode<E>>().also {
+        val node = root ?: return
+        val stack = LinkedList<TreeNode<E>>().also {
             it.push(node)
         }
         while (stack.isNotEmpty()) {
-            node = stack.pop()
-            visitor.stop = visitor.visit(node.element)
+            val pop = stack.pop()
+            visitor.stop = visitor.visit(pop.item as E)
             if (visitor.stop) return
-            if (node.hasRight) {
-                stack.push(node.right)
+            if (pop.hasRight) {
+                stack.push(pop.right)
             }
-            if (node.hasLeft) {
-                stack.push(node.left)
+            if (pop.hasLeft) {
+                stack.push(pop.left)
             }
         }
     }
 
     override fun inorderTraversal(visitor: IVisitor<E>) {
-        val root = root ?: return
-        var node: TreeNode<E>? = root
-        val stack: Deque<TreeNode<E>> = LinkedList<TreeNode<E>>()
+        var node: TreeNode<E>? = root ?: return
+        val stack = LinkedList<TreeNode<E>>()
         while (node != null || stack.isNotEmpty()) {
             if (visitor.stop) return
             if (node != null) {
@@ -297,48 +308,50 @@ class BST<E> : IBinaryTree<E>, IBinaryTreeTraversal<E>, BinaryTreeInfo {
                 node = node.left
             } else {
                 node = stack.pop()
-                visitor.stop = visitor.visit(node.element)
-                node = node.right
+                visitor.stop = visitor.visit(node.item as E)
+                if (visitor.stop) return
+                node = node?.right
             }
         }
     }
 
     override fun postorderTraversal(visitor: IVisitor<E>) {
-        val root = root ?: return
-        var node: TreeNode<E>? = root
-        val inStack: Deque<TreeNode<E>> = LinkedList<TreeNode<E>>()
-        val outStack: Deque<TreeNode<E>> = LinkedList<TreeNode<E>>()
-        inStack.push(node)
+        val node = root ?: return
+        val inStack = LinkedList<TreeNode<E>>().also {
+            it.push(node)
+        }
+        val outStack = LinkedList<TreeNode<E>>()
         while (inStack.isNotEmpty()) {
-            node = inStack.pop()
-            outStack.push(node)
-            if (node.hasLeft) {
-                inStack.push(node.left)
+            val pop = inStack.pop()
+            outStack.push(pop)
+            if (pop.hasLeft) {
+                inStack.push(pop.left)
             }
-            if (node.hasRight) {
-                inStack.push(node.right)
+            if (pop.hasRight) {
+                inStack.push(pop.right)
             }
         }
         while (outStack.isNotEmpty()) {
             if (visitor.stop) return
-            visitor.stop = visitor.visit(outStack.pop().element)
+            visitor.stop = visitor.visit(outStack.pop().item as E)
         }
     }
 
     override fun levelOrderTraversal(visitor: IVisitor<E>) {
-        val root = root ?: return
-        val queue: Queue<TreeNode<E>> = LinkedList<TreeNode<E>>().also {
-            it.offer(root)
+        val node = root ?: return
+        val queue = LinkedList<TreeNode<E>>().also {
+            it.offer(node)
         }
         while (queue.isNotEmpty()) {
             if (visitor.stop) return
-            val node = queue.poll()
-            visitor.stop = visitor.visit(node.element)
-            if (node.hasLeft) {
-                queue.offer(node.left)
+            val poll = queue.poll()
+            visitor.stop = visitor.visit(poll.item as E)
+            if (visitor.stop) return
+            if (poll.hasLeft) {
+                queue.offer(poll.left)
             }
-            if (node.hasRight) {
-                queue.offer(node.right)
+            if (poll.hasRight) {
+                queue.offer(poll.right)
             }
         }
     }
@@ -356,33 +369,33 @@ class BST<E> : IBinaryTree<E>, IBinaryTreeTraversal<E>, BinaryTreeInfo {
     }
 
     override fun string(node: Any?): Any? {
-        return (node as? TreeNode<*>)?.element?.toString()
+        return (node as? TreeNode<*>)?.item
     }
 
-    private class TreeNode<E>(
-        var element: E,
-        var parent: TreeNode<E>?
-    ) {
+    private class TreeNode<E>(var item: E?, var parent: TreeNode<E>?) {
 
         var left: TreeNode<E>? = null
         var right: TreeNode<E>? = null
 
-        val isLeaf: Boolean
-            get() = left == null && right == null
+        val hasParent: Boolean
+            get() = parent != null
 
         val hasTwoChildren: Boolean
             get() = left != null && right != null
 
+        val isLeaf: Boolean
+            get() = left == null && right == null
+
         val hasLeft: Boolean
             get() = left != null
+
+        val hasLeftOnly: Boolean
+            get() = hasLeft && right == null
 
         val hasRight: Boolean
             get() = right != null
 
-        val hasLeftOnly: Boolean
-            get() = left != null && right == null
-
         val hasRightOnly: Boolean
-            get() = left == null && right != null
+            get() = !hasLeft && hasRight
     }
 }
