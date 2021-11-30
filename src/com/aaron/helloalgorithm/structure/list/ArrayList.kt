@@ -119,7 +119,7 @@ class ArrayList<E> : AbstractList<E> {
     }
 
     fun trimToSize() {
-        items = items.copyOf(0)
+        items = items.copyOf(size)
     }
 
     override fun toString(): String {
